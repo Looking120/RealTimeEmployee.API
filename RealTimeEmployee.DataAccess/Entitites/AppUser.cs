@@ -10,5 +10,7 @@ public class AppUser : IdentityUser<Guid>
 
     public string? MiddleName { get; init; }
 
-    public DateTime BirthDate { get; init; }
+    public Guid? EmployeeId { get; set; }
+
+    public Employee? Employee { get; set; }
 }

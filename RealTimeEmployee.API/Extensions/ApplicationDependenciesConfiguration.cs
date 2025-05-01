@@ -11,6 +11,8 @@ using RealTimeEmployee.BusinessLogic.Services.Implementations;
 using RealTimeEmployee.BusinessLogic.Services.Interfaces;
 using RealTimeEmployee.DataAccess.Data;
 using RealTimeEmployee.DataAccess.Entitites;
+using RealTimeEmployee.DataAccess.Repository.Implementations;
+using RealTimeEmployee.DataAccess.Repository.Interfaces;
 using RealTimeEmployee.DataAccess.SeedData;
 using System.Text;
 
@@ -193,6 +195,7 @@ public static partial class ApplicationDependenciesConfiguration
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {
         services
+            .AddScoped<IUnitOfWork, UnitOfWork>()
             .AddScoped<SeedRoles>()
             .AddScoped<SeedAdmin>();
 
