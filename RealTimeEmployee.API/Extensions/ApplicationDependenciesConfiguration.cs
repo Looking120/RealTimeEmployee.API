@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using RealTimeEmployee.BusinessLogic.Helpers;
@@ -51,15 +50,22 @@ public static partial class ApplicationDependenciesConfiguration
     }
 
     /// <summary>
-	/// Adds services to the <paramref name="services"/> collection
-	/// </summary>
-	///<param name="services">The <see cref="IServiceCollection"/> to which services are added</param>
-	/// <returns>The service collection</returns>
-	public static IServiceCollection AddServices(this IServiceCollection services)
+    /// Adds services to the <paramref name="services"/> collection
+    /// </summary>
+    ///<param name="services">The <see cref="IServiceCollection"/> to which services are added</param>
+    /// <returns>The service collection</returns>
+    public static IServiceCollection AddServices(this IServiceCollection services)
     {
         services
             .AddScoped<IUserService, UserService>()
-            .AddScoped<IAuthService, AuthService>();
+            .AddScoped<IAuthService, AuthService>()
+            .AddScoped<IUserManagementService, UserManagementService>()
+            .AddScoped<IEmployeeService, EmployeeService>()
+            .AddScoped<IActivityLogService, ActivityLogService>()
+            .AddScoped<IAttendanceService, AttendanceService>()
+            .AddScoped<ILocationService, LocationService>()
+            .AddScoped<IMessageService, MessageService>()
+            .AddScoped<IOrganizationService, OrganizationService>();
 
         return services;
     }
@@ -79,7 +85,7 @@ public static partial class ApplicationDependenciesConfiguration
 
         return builder.Services.AddIdentityDatabase(options =>
         {
-            options.UseSqlServer(connectionString);
+            options.UseSqlServer(connectionString, x => x.UseNetTopologySuite());
         });
     }
 
@@ -190,7 +196,7 @@ public static partial class ApplicationDependenciesConfiguration
     /// </summary>
     /// <param name="builder">The web application builder</param>
     /// <returns>The service collection</returns>
-    
+
 
     public static IServiceCollection AddRepositories(this IServiceCollection services)
     {

@@ -1,8 +1,11 @@
-﻿namespace RealTimeEmployee.DataAccess.Enums;
+﻿using System.Text.Json.Serialization;
+
+namespace RealTimeEmployee.DataAccess.Enums;
 
 /// <summary>
 /// Represents the current activity status of an employee
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum ActivityStatus
 {
     Offline,

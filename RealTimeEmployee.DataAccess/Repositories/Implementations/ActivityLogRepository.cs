@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using RealTimeEmployee.DataAccess.Data;
 using RealTimeEmployee.DataAccess.Entitites;
 using RealTimeEmployee.DataAccess.Enums;
 using RealTimeEmployee.DataAccess.Repositories.Interfaces;
@@ -7,7 +8,7 @@ namespace RealTimeEmployee.DataAccess.Repositories.Implementations;
 
 public class ActivityLogRepository : Repository<ActivityLog>, IActivityLogRepository
 {
-    public ActivityLogRepository(DbContext context) : base(context) { }
+    public ActivityLogRepository(RealTimeEmployeeDbContext context) : base(context) { }
 
     public async Task<IEnumerable<ActivityLog>> GetByEmployeeAndDateRangeAsync(Guid employeeId, DateTime start, DateTime end)
         => await _dbSet

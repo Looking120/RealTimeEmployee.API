@@ -20,4 +20,7 @@ public interface ILocationHistoryRepository : IRepository<LocationHistory>
     /// <param name="maxLng"></param>
     /// <returns></returns>
     Task<IEnumerable<LocationHistory>> GetInAreaAsync(double minLat, double maxLat, double minLng, double maxLng);
+
+    Task<IEnumerable<LocationHistory>> GetByEmployeeAndDateRangeAsync(Guid employeeId, DateTime startDate, DateTime endDate);
+    Task<IEnumerable<LocationHistory>> GetWithinRadiusAsync(double centerLat, double centerLng, double radiusKm);
 }

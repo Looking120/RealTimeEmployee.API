@@ -1,3 +1,3 @@
 ﻿namespace RealTimeEmployee.BusinessLogic.Requests;
 
-public record SendMessageRequest(string Content);
+public record SendMessageRequest(Guid SenderId, Guid ReceiverId, string Content);

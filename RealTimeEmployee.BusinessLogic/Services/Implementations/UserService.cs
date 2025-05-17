@@ -41,7 +41,6 @@ public class UserService : IUserService
         }
     }
 
- 
     public async Task EnsureEmailConfirmed(AppUser user)
     {
         if (!await _userManager.IsEmailConfirmedAsync(user))
@@ -110,6 +109,8 @@ public class UserService : IUserService
         {
             Id = user.Id,
             UserName = user.UserName,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
             Email = user.Email,
             Role = role,
             AccessToken = tokenHandler.WriteToken(token),

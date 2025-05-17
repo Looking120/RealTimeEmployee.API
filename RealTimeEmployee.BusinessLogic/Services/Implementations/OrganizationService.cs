@@ -5,6 +5,7 @@ using RealTimeEmployee.BusinessLogic.Exceptions;
 using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.BusinessLogic.Services.Interfaces;
 using RealTimeEmployee.DataAccess.Entitites;
+using RealTimeEmployee.DataAccess.Models;
 using RealTimeEmployee.DataAccess.Repository.Interfaces;
 
 namespace RealTimeEmployee.BusinessLogic.Services.Implementations;
@@ -97,5 +98,35 @@ public class OrganizationService : IOrganizationService
         var positions = await _unitOfWork.GetRepository<Position>().GetAllAsync();
 
         return _mapper.Map<IEnumerable<PositionDto>>(positions);
+    }
+
+    public async Task<PaginatedResult<DepartmentDto>> GetAllDepartmentsAsync(PaginationRequest pagination)
+    {
+        var departmentRepo = _unitOfWork.GetRepository<Department>();
+        var totalCount = await departmentRepo.CountAsync();
+
+        var departments = await departmentRepo.GetPagedAsync(pagination);
+        var departmentDtos = _mapper.Map<IEnumerable<DepartmentDto>>(departments.Items);
+
+        return new PaginatedResult<DepartmentDto>(
+            departmentDtos,
+            totalCount,
+            pagination.PageNumber,
+            pagination.PageSize);
+    }
+
+    public async Task<PaginatedResult<PositionDto>> GetAllPositionsAsync(PaginationRequest pagination)
+    {
+        var positionRepo = _unitOfWork.GetRepository<Position>();
+        var totalCount = await positionRepo.CountAsync();
+
+        var positions = await positionRepo.GetPagedAsync(pagination);
+        var positionDtos = _mapper.Map<IEnumerable<PositionDto>>(positions.Items);
+
+        return new PaginatedResult<PositionDto>(
+            positionDtos,
+            totalCount,
+            pagination.PageNumber,
+            pagination.PageSize);
     }
 }

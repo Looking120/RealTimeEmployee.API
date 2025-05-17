@@ -19,6 +19,14 @@ namespace RealTimeEmployee.DataAccess.Repository.Interfaces
 
         IMessageRepository Messages { get; }
 
+        Task BeginTransactionAsync();
+
+        Task CommitTransactionAsync();
+
+        Task RollbackTransactionAsync();
+
+        Task<TResult> ExecuteInTransactionAsync<TResult>(Func<Task<TResult>> operation);
+
         Task<int> SaveChangesAsync();
     }
 }

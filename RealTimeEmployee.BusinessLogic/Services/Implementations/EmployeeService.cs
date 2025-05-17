@@ -2,11 +2,13 @@
 using FluentValidation;
 using RealTimeEmployee.BusinessLogic.Dtos;
 using RealTimeEmployee.BusinessLogic.Exceptions;
+using RealTimeEmployee.BusinessLogic.Profiles;
 using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.BusinessLogic.Services.Interfaces;
 using RealTimeEmployee.DataAccess.Entitites;
 using RealTimeEmployee.DataAccess.Enums;
 using RealTimeEmployee.DataAccess.Extensions;
+using RealTimeEmployee.DataAccess.Models;
 using RealTimeEmployee.DataAccess.Repository.Interfaces;
 
 namespace RealTimeEmployee.BusinessLogic.Services.Implementations;
@@ -36,18 +38,22 @@ public class EmployeeService : IEmployeeService
         return _mapper.Map<EmployeeDto>(employee);
     }
 
-    public async Task<IEnumerable<EmployeeDto>> GetAllEmployeesAsync()
+    public async Task<PaginatedResult<EmployeeDto>> GetAllEmployeesAsync(PaginationRequest pagination)
     {
-        var employees = await _unitOfWork.Employees.GetAllAsync();
+        var result = await _unitOfWork.Employees.GetPagedAsync(pagination);
 
-        return _mapper.Map<IEnumerable<EmployeeDto>>(employees);
+        return result.ToPaginatedResult<Employee, EmployeeDto>(_mapper);
     }
 
-    public async Task<IEnumerable<EmployeeDto>> GetEmployeesByStatusAsync(ActivityStatus status)
+    public async Task<PaginatedResult<EmployeeDto>> GetEmployeesByStatusAsync(
+        ActivityStatus status,
+        PaginationRequest pagination)
     {
-        var employees = await _unitOfWork.Employees.GetByStatusAsync(status);
+        var result = await _unitOfWork.Employees.GetPagedAsync(
+            pagination,
+            e => e.CurrentStatus == status);
 
-        return _mapper.Map<IEnumerable<EmployeeDto>>(employees);
+        return result.ToPaginatedResult<Employee, EmployeeDto>(_mapper);
     }
 
     public async Task UpdateEmployeeStatusAsync(Guid employeeId, ActivityStatus status)
@@ -79,18 +85,15 @@ public class EmployeeService : IEmployeeService
 
         var employee = await _unitOfWork.Employees.GetByIdAsync(employeeId);
 
-        return new EmployeeLocationDto(
-            employeeId,
-            $"{employee.FirstName} {employee.LastName}",
-            location.Latitude,
-            location.Longitude,
-            location.LocationType,
-            location.Timestamp);
+        var locationDto = _mapper.Map<EmployeeLocationDto>(location);
+
+        return locationDto with { EmployeeName = $"{employee.FirstName} {employee.LastName}" };
     }
 
-    public async Task<IEnumerable<EmployeeDto>> GetEmployeesInLocationRadiusAsync(
+    public async Task<PaginatedResult<EmployeeDto>> GetEmployeesInLocationRadiusAsync(
         Guid employeeId,
-        LocationRadiusRequest request)
+        LocationRadiusRequest request,
+        PaginationRequest pagination)
     {
         await _locationValidator.ValidateAndThrowAsync(request);
 
@@ -99,6 +102,18 @@ public class EmployeeService : IEmployeeService
             request.Longitude,
             request.RadiusKm);
 
-        return _mapper.Map<IEnumerable<EmployeeDto>>(employees);
+        var totalCount = employees.Count();
+
+        var pagedEmployees = employees
+            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+            .Take(pagination.PageSize);
+
+        var employeeDtos = _mapper.Map<IEnumerable<EmployeeDto>>(pagedEmployees);
+
+        return new PaginatedResult<EmployeeDto>(
+            employeeDtos,
+            totalCount,
+            pagination.PageNumber,
+            pagination.PageSize);
     }
 }

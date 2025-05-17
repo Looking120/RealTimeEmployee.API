@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using RealTimeEmployee.DataAccess.Data;
 using RealTimeEmployee.DataAccess.Entitites;
 using RealTimeEmployee.DataAccess.Repositories.Interfaces;
 
@@ -6,7 +7,7 @@ namespace RealTimeEmployee.DataAccess.Repositories.Implementations;
 
 public class AttendanceRecordRepository : Repository<AttendanceRecord>, IAttendanceRecordRepository
 {
-    public AttendanceRecordRepository(DbContext context) : base(context) { }
+    public AttendanceRecordRepository(RealTimeEmployeeDbContext context) : base(context) { }
 
     public async Task<IEnumerable<AttendanceRecord>> GetByEmployeeAndMonthAsync(
         Guid employeeId,

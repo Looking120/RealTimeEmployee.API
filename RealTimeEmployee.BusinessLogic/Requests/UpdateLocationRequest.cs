@@ -2,7 +2,4 @@
 
 namespace RealTimeEmployee.BusinessLogic.Requests;
 
-public record UpdateLocationRequest(
-    double Latitude,
-    double Longitude,
-    LocationType LocationType);
+public record UpdateLocationRequest(double Latitude, double Longitude, LocationType LocationType);

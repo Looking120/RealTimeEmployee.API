@@ -1,8 +1,10 @@
-﻿using FluentValidation;
+﻿using AutoMapper;
+using FluentValidation;
 using RealTimeEmployee.BusinessLogic.Dtos;
 using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.BusinessLogic.Services.Interfaces;
 using RealTimeEmployee.DataAccess.Entitites;
+using RealTimeEmployee.DataAccess.Models;
 using RealTimeEmployee.DataAccess.Repository.Interfaces;
 
 namespace RealTimeEmployee.BusinessLogic.Services.Implementations;
@@ -11,13 +13,16 @@ public class MessageService : IMessageService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IValidator<SendMessageRequest> _messageValidator;
+    private readonly IMapper _mapper;
 
     public MessageService(
         IUnitOfWork unitOfWork,
-        IValidator<SendMessageRequest> messageValidator)
+        IValidator<SendMessageRequest> messageValidator,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _messageValidator = messageValidator;
+        _mapper = mapper;
     }
 
     public async Task SendMessageAsync(
@@ -39,24 +44,24 @@ public class MessageService : IMessageService
         await _unitOfWork.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<MessageDto>> GetConversationAsync(
+     public async Task<PaginatedResult<MessageDto>> GetConversationAsync(
         Guid employee1Id,
-        Guid employee2Id)
+        Guid employee2Id,
+        PaginationRequest pagination)
     {
         var messages = await _unitOfWork.Messages.GetConversationAsync(employee1Id, employee2Id);
+        var totalCount = messages.Count();
 
-        var employee1 = await _unitOfWork.Employees.GetByIdAsync(employee1Id);
-        var employee2 = await _unitOfWork.Employees.GetByIdAsync(employee2Id);
+        var pagedMessages = messages
+            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ToList();
 
-        return messages.Select(m => new MessageDto(
-            m.Id,
-            m.SenderId,
-            $"{employee1.FirstName} {employee1.LastName}",
-            m.ReceiverId,
-            $"{employee2.FirstName} {employee2.LastName}",
-            m.Content,
-            m.SentTime,
-            m.IsRead));
+        return new PaginatedResult<MessageDto>(
+            _mapper.Map<IEnumerable<MessageDto>>(pagedMessages),
+            totalCount,
+            pagination.PageNumber,
+            pagination.PageSize);
     }
 
     public async Task<IEnumerable<MessageDto>> GetUnreadMessagesAsync(Guid employeeId)
@@ -93,5 +98,46 @@ public class MessageService : IMessageService
     {
         await _unitOfWork.Messages.MarkAsReadAsync(messageIds);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+
+    public async Task<PaginatedResult<MessageDto>> GetUnreadMessagesAsync(Guid employeeId, PaginationRequest pagination)
+    {
+        var messages = await _unitOfWork.Messages.GetUnreadAsync(employeeId);
+        var totalCount = messages.Count();
+
+        var pagedMessages = messages
+            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ToList();
+
+        var senders = new Dictionary<Guid, string>();
+        var messageDtos = new List<MessageDto>();
+
+        foreach (var message in pagedMessages)
+        {
+            if (!senders.TryGetValue(message.SenderId, out var senderName))
+            {
+                var sender = await _unitOfWork.Employees.GetByIdAsync(message.SenderId);
+                senderName = $"{sender.FirstName} {sender.LastName}";
+                senders[message.SenderId] = senderName;
+            }
+
+            messageDtos.Add(new MessageDto(
+                message.Id,
+                message.SenderId,
+                senderName,
+                message.ReceiverId,
+                string.Empty, // Receiver name is not needed here
+                message.Content,
+                message.SentTime,
+                message.IsRead));
+        }
+
+        return new PaginatedResult<MessageDto>(
+            messageDtos,
+            totalCount,
+            pagination.PageNumber,
+            pagination.PageSize);
     }
 }

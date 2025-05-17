@@ -1,10 +1,12 @@
-﻿using FluentValidation;
+﻿using AutoMapper;
+using FluentValidation;
 using RealTimeEmployee.BusinessLogic.Dtos;
 using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.BusinessLogic.Services.Interfaces;
 using RealTimeEmployee.DataAccess.Entitites;
 using RealTimeEmployee.DataAccess.Enums;
 using RealTimeEmployee.DataAccess.Extensions;
+using RealTimeEmployee.DataAccess.Models;
 using RealTimeEmployee.DataAccess.Repository.Interfaces;
 
 namespace RealTimeEmployee.BusinessLogic.Services.Implementations;
@@ -14,15 +16,18 @@ public class ActivityLogService : IActivityLogService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IEmployeeService _employeeService;
     private readonly IValidator<ActivityTimeRangeRequest> _timeRangeValidator;
+    private readonly IMapper _mapper;
 
     public ActivityLogService(
         IUnitOfWork unitOfWork,
         IEmployeeService employeeService,
-        IValidator<ActivityTimeRangeRequest> timeRangeValidator)
+        IValidator<ActivityTimeRangeRequest> timeRangeValidator,
+        IMapper mapper)
     {
         _unitOfWork = unitOfWork;
         _employeeService = employeeService;
         _timeRangeValidator = timeRangeValidator;
+        _mapper = mapper;
     }
 
     public async Task LogActivityAsync(Guid employeeId, ActivityType activityType, string? description = null)
@@ -54,16 +59,7 @@ public class ActivityLogService : IActivityLogService
             request.StartDate,
             request.EndDate);
 
-        var employee = await _unitOfWork.Employees.GetByIdAsync(employeeId);
-
-        return logs.Select(log => new ActivityLogDto(
-            log.Id,
-            employeeId,
-            $"{employee.FirstName} {employee.LastName}",
-            log.ActivityType,
-            log.StartTime,
-            log.EndTime,
-            log.Description));
+        return _mapper.Map<IEnumerable<ActivityLogDto>>(logs);
     }
 
     public async Task EndCurrentActivityAsync(Guid employeeId)
@@ -79,5 +75,33 @@ public class ActivityLogService : IActivityLogService
             currentActivity.EndTime = DateTime.UtcNow;
             await _unitOfWork.SaveChangesAsync();
         }
+    }
+
+    public async Task<PaginatedResult<ActivityLogDto>> GetEmployeeActivitiesAsync(
+        Guid employeeId,
+        ActivityTimeRangeRequest request,
+        PaginationRequest pagination)
+    {
+        await _timeRangeValidator.ValidateAndThrowAsync(request);
+
+        var logs = await _unitOfWork.ActivityLogs.GetByEmployeeAndDateRangeAsync(
+            employeeId,
+            request.StartDate,
+            request.EndDate);
+
+        var totalCount = logs.Count();
+
+        var pagedLogs = logs
+            .Skip((pagination.PageNumber - 1) * pagination.PageSize)
+            .Take(pagination.PageSize)
+            .ToList();
+
+        var logDtos = _mapper.Map<IEnumerable<ActivityLogDto>>(pagedLogs);
+
+        return new PaginatedResult<ActivityLogDto>(
+            logDtos,
+            totalCount,
+            pagination.PageNumber,
+            pagination.PageSize);
     }
 }

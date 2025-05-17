@@ -1,6 +1,7 @@
 ﻿using RealTimeEmployee.BusinessLogic.Dtos;
 using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.DataAccess.Enums;
+using RealTimeEmployee.DataAccess.Models;
 
 namespace RealTimeEmployee.BusinessLogic.Services.Interfaces;
 
@@ -8,13 +9,16 @@ public interface IEmployeeService
 {
     Task<EmployeeDto> GetEmployeeByIdAsync(Guid id);
 
-    Task<IEnumerable<EmployeeDto>> GetAllEmployeesAsync();
+    Task<PaginatedResult<EmployeeDto>> GetAllEmployeesAsync(PaginationRequest pagination);
 
-    Task<IEnumerable<EmployeeDto>> GetEmployeesByStatusAsync(ActivityStatus status);
+    Task<PaginatedResult<EmployeeDto>> GetEmployeesByStatusAsync(ActivityStatus status, PaginationRequest pagination);
 
     Task UpdateEmployeeStatusAsync(Guid employeeId, ActivityStatus status);
 
     Task<EmployeeLocationDto> GetCurrentEmployeeLocationAsync(Guid employeeId);
 
-    Task<IEnumerable<EmployeeDto>> GetEmployeesInLocationRadiusAsync(Guid employeeId, LocationRadiusRequest request);
+    Task<PaginatedResult<EmployeeDto>> GetEmployeesInLocationRadiusAsync(
+        Guid employeeId,
+        LocationRadiusRequest request,
+        PaginationRequest pagination);
 }

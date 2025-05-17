@@ -1,8 +1,11 @@
-﻿namespace RealTimeEmployee.DataAccess.Enums;
+﻿using System.Text.Json.Serialization;
+
+namespace RealTimeEmployee.DataAccess.Enums;
 
 /// <summary>
 /// Represents types of work locations
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum LocationType
 {
     Office,
