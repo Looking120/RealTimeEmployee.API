@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.BusinessLogic.Services.Interfaces;
 using RealTimeEmployee.DataAccess.Constants;
 using RealTimeEmployee.DataAccess.Models;
@@ -15,6 +16,16 @@ public class UsersController : BaseApiController
     public UsersController(IUserManagementService userManagementService)
     {
         _userManagementService = userManagementService;
+    }
+
+    [HttpPost("hire")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> HireEmployee([FromBody] HireEmployeeRequest request)
+    {
+        await _userManagementService.HireEmployeeAsync(request);
+        return NoContent();
     }
 
     [HttpGet]

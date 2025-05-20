@@ -1,4 +1,5 @@
 ﻿using RealTimeEmployee.BusinessLogic.Dtos;
+using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.DataAccess.Entitites;
 using RealTimeEmployee.DataAccess.Models;
 
@@ -10,4 +11,5 @@ public interface IUserManagementService
     Task<UserDto> GetUserByIdAsync(Guid userId);
     Task<bool> DeleteUserAsync(Guid userId);
     Task<bool> UpdateUserRoleAsync(Guid userId, string roleName);
+    Task<bool> HireEmployeeAsync(HireEmployeeRequest request);
 }

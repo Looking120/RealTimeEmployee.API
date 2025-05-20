@@ -2,6 +2,7 @@
 using FluentValidation;
 using RealTimeEmployee.BusinessLogic.Dtos;
 using RealTimeEmployee.BusinessLogic.Exceptions;
+using RealTimeEmployee.BusinessLogic.Profiles;
 using RealTimeEmployee.BusinessLogic.Requests;
 using RealTimeEmployee.BusinessLogic.Services.Interfaces;
 using RealTimeEmployee.DataAccess.Entitites;
@@ -16,17 +17,118 @@ public class OrganizationService : IOrganizationService
     private readonly IMapper _mapper;
     private readonly IValidator<DepartmentCreateRequest> _departmentValidator;
     private readonly IValidator<PositionCreateRequest> _positionValidator;
+    private readonly IValidator<OfficeCreateRequest> _officeCreateValidator;
+    private readonly IValidator<OfficeUpdateRequest> _officeUpdateValidator;
 
     public OrganizationService(
         IUnitOfWork unitOfWork,
         IMapper mapper,
         IValidator<DepartmentCreateRequest> departmentValidator,
-        IValidator<PositionCreateRequest> positionValidator)
+        IValidator<PositionCreateRequest> positionValidator,
+        IValidator<OfficeCreateRequest> officeCreateValidator,
+        IValidator<OfficeUpdateRequest> officeUpdateValidator)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
         _departmentValidator = departmentValidator;
         _positionValidator = positionValidator;
+        _officeCreateValidator = officeCreateValidator;
+        _officeUpdateValidator = officeUpdateValidator;
+    }
+
+    public async Task<OfficeDto> CreateOfficeAsync(OfficeCreateRequest request)
+    {
+        await _officeCreateValidator.ValidateAndThrowAsync(request);
+
+        var officeRepo = _unitOfWork.GetRepository<Office>();
+
+        if (await officeRepo.ExistsAsync(o => o.Name == request.Name))
+            throw new AlreadyExistsException($"Office with name '{request.Name}' already exists");
+
+        var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+        var center = geometryFactory.CreatePoint(new NetTopologySuite.Geometries.Coordinate(request.Longitude, request.Latitude));
+        var office = _mapper.Map<Office>(request);
+
+        office.Center = center;
+
+        await officeRepo.AddAsync(office);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<OfficeDto>(office);
+    }
+
+    public async Task<OfficeDto> GetOfficeByIdAsync(Guid officeId)
+    {
+        var officeRepo = _unitOfWork.GetRepository<Office>();
+        var office = await officeRepo.GetByIdAsync(officeId);
+
+        if (office is null)
+            throw new NotFoundException($"Office with id {officeId} not found");
+
+        return _mapper.Map<OfficeDto>(office);
+    }
+
+    public async Task<PaginatedResult<OfficeDto>> GetAllOfficesAsync(PaginationRequest pagination)
+    {
+        var officeRepo = _unitOfWork.GetRepository<Office>();
+        var totalCount = await officeRepo.CountAsync();
+
+        var offices = await officeRepo.GetPagedAsync(pagination);
+
+        return offices.ToPaginatedResult<Office, OfficeDto>(_mapper);
+    }
+
+    public async Task<OfficeDto> UpdateOfficeAsync(Guid officeId, OfficeUpdateRequest request)
+    {
+        await _officeUpdateValidator.ValidateAndThrowAsync(request);
+
+        var officeRepo = _unitOfWork.GetRepository<Office>();
+        var office = await officeRepo.GetByIdAsync(officeId);
+
+        if (office is null)
+            throw new NotFoundException($"Office with id {officeId} not found");
+
+        if (request.Latitude.HasValue || request.Longitude.HasValue)
+        {
+            var latitude = request.Latitude ?? office.Center.Y;
+            var longitude = request.Longitude ?? office.Center.X;
+
+            var geometryFactory = NetTopologySuite.NtsGeometryServices.Instance.CreateGeometryFactory(srid: 4326);
+            office.Center = geometryFactory.CreatePoint(new NetTopologySuite.Geometries.Coordinate(longitude, latitude));
+        }
+
+        if (request.Radius.HasValue)
+            office.Radius = request.Radius.Value;
+
+        if (request.Description is not null)
+            office.Description = request.Description;
+
+        officeRepo.Update(office);
+        await _unitOfWork.SaveChangesAsync();
+
+        return _mapper.Map<OfficeDto>(office);
+    }
+
+    public async Task DeleteOfficeAsync(Guid officeId)
+    {
+        var officeRepo = _unitOfWork.GetRepository<Office>();
+        var office = await officeRepo.GetByIdAsync(officeId);
+
+        if (office is null)
+            throw new NotFoundException($"Office with id {officeId} not found");
+
+        var employeeRepo = _unitOfWork.Employees;
+
+        var employeesInOffice = await employeeRepo.GetNearLocationAsync(
+            office.Center.Y,
+            office.Center.X,
+            office.Radius);
+
+        if (employeesInOffice.Any())
+            throw new InvalidOperationException("Cannot delete office with assigned employees");
+
+        officeRepo.Remove(office);
+        await _unitOfWork.SaveChangesAsync();
     }
 
     public async Task<DepartmentDto> CreateDepartmentAsync(DepartmentCreateRequest request)
@@ -35,7 +137,6 @@ public class OrganizationService : IOrganizationService
 
         var departmentRepo = _unitOfWork.GetRepository<Department>();
 
-        // Check if department already exists
         if (await departmentRepo.ExistsAsync(d => d.Name == request.Name))
             throw new AlreadyExistsException($"Department '{request.Name}' already exists");
 

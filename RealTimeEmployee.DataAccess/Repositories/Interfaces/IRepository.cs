@@ -16,7 +16,7 @@ public interface IRepository<T> where T : class
         Expression<Func<T, bool>>? filter = null,
         Func<IQueryable<T>, IOrderedQueryable<T>>? orderBy = null);
 
-    Task<int> CountAsync(Expression<Func<T, bool>> predicate = null);
+    Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null);
 
     Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
 

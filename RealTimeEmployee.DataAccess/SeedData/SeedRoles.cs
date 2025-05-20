@@ -14,7 +14,7 @@ public class SeedRoles
 
     public async Task InitializeRolesAsync()
     {
-        string[] roleNames = [Roles.Admin, Roles.User];
+        string[] roleNames = [Roles.Admin, Roles.User, Roles.Employee];
 
         foreach (var roleName in roleNames)
         {

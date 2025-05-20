@@ -94,7 +94,9 @@ public class UserService : IUserService
             [
                 new(ClaimTypes.Email, user.Email),
                 new(ClaimTypes.Role, role),
-                new(ClaimTypes.NameIdentifier, user.Id.ToString())
+                new(ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new Claim(ClaimTypes.GivenName, user.FirstName),
+                new Claim(ClaimTypes.Surname, user.LastName)
             ]),
 
             Expires = DateTime.UtcNow.AddMinutes(Convert.ToInt32(_jwtSettings.DurationInMinutes)),
